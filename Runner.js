@@ -18,6 +18,19 @@ class Runner {
 			}
 		});
 	}
+	async runTests() {
+		this.files.forEach((file) => {
+			const beforeEaches = [];
+			global.beforeEach = (fn) => {
+				beforeEaches.push(fn);
+			};
+			global.it = (desc, fn) => {
+				beforeEaches.forEach((func) => func());
+				fn();
+			};
+			require(file.name);
+		});
+	}
 }
 
 module.exports = Runner;
