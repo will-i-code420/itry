@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const chalk = require('chalk');
 
 class Runner {
 	constructor() {
@@ -8,27 +9,40 @@ class Runner {
 	async collectFiles(targetPath) {
 		const files = await fs.promises.readdir(targetPath);
 		files.forEach(async (file) => {
-			const path = path.join(targetPath, file);
-			const stats = await fs.promises.lstat(path);
+			const filePath = path.join(targetPath, file);
+			const stats = await fs.promises.lstat(filePath);
 			if (stats.isFile() && file.includes('.test.js')) {
-				this.testFiles.push({ name: path });
+				this.testFiles.push({ name: filePath, shortName: file });
 			} else if (stats.isDirectory()) {
-				const childFiles = await fs.promises.readdir(path);
+				const childFiles = await fs.promises.readdir(filePath);
 				files.push(...childFiles.map((f) => path.join(file, f)));
 			}
 		});
 	}
 	async runTests() {
-		this.files.forEach((file) => {
+		this.testFiles.forEach((file) => {
+			console.log(chalk.gray(`---- ${file.shortName}`));
 			const beforeEaches = [];
 			global.beforeEach = (fn) => {
 				beforeEaches.push(fn);
 			};
 			global.it = (desc, fn) => {
 				beforeEaches.forEach((func) => func());
-				fn();
+				try {
+					fn();
+					console.log(chalk.green(`\tPASS - ${desc}`));
+				} catch (e) {
+					const msg = e.message.replace(/\n/g, '\n\t\t');
+					console.log(chalk.red(`\tFAIL - ${desc}`));
+					console.log(chalk.red('\t', msg));
+				}
 			};
-			require(file.name);
+			try {
+				require(file.name);
+			} catch (e) {
+				console.log(chalk.red(`Error Loading ${file.name}`));
+				console.log(chalk.red('\t', e.message));
+			}
 		});
 	}
 }
