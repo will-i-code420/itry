@@ -30,10 +30,10 @@ class Runner {
 			global.beforeEach = (fn) => {
 				beforeEaches.push(fn);
 			};
-			global.it = (desc, fn) => {
+			global.it = async (desc, fn) => {
 				beforeEaches.forEach((func) => func());
 				try {
-					fn();
+					await fn();
 					console.log(chalk.green(`\tPASS - ${desc}`));
 				} catch (e) {
 					const msg = e.message.replace(/\n/g, '\n\t\t');
